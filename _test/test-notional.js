@@ -6,7 +6,7 @@ const TEST_DATE = new Date(2022, 02, 25);
 const TEST_UNIX_TIMESTAMP = Math.floor(TEST_DATE.getTime() / 1000);
 
 /**
- * At block number 1428255, this account contains 
+ * At block number 1428255, this account contains
  * -2.6M USDC (Mar 28 2022)
  * -30 WBTC (Mar 28 2022)
  */
@@ -37,7 +37,11 @@ async function testDebtSettlement_withSettlableDebt_shouldBuildNotificationWithP
       TEST_BLOCK_NUMBER
     );
   console.log('Account info:\n', ACCOUNT_WITH_DEBT, '\n');
-  console.log('Account settlable positions:\n', JSON.stringify(debtPositions), '\n');
+  console.log(
+    'Account settlable positions:\n',
+    JSON.stringify(debtPositions),
+    '\n'
+  );
 
   const notification = debtSettlement.buildNotification(debtPositions);
   console.log('Notifications:\n', JSON.stringify(notification), '\n');
@@ -113,7 +117,6 @@ async function testFreeCollateral_withFreeCollateralAboveThreshold_shouldNotNoti
   const FreeCollateral = require('../notional/free-collateral');
   const freeCollateral = new FreeCollateral();
 
-
   console.log(
     '\n\n########  testFreeCollateral_withSufficientFreeCollateral_shouldNotNotify #######'
   );
@@ -127,21 +130,58 @@ async function testFreeCollateral_withFreeCollateralAboveThreshold_shouldNotNoti
     };
   };
 
-  const notification = await freeCollateral.onBlocks({subscription: {
-    'free-collateral': 500,
-    'address': '0x00000',
-  }});
+  const notification = await freeCollateral.onBlocks({
+    subscription: {
+      'free-collateral': 500,
+      address: '0x00000',
+    },
+  });
   console.log('Notifications:\n', JSON.stringify(notification), '\n');
 
   console.assert(notification instanceof Array);
   console.assert(notification.length === 0);
 }
 
+async function testFreeCollateral_withFreeCollateralBelowThreshold_shouldNotify() {
+  const FreeCollateral = require('../notional/free-collateral');
+  const freeCollateral = new FreeCollateral();
+
+  console.log(
+    '\n\n########  testFreeCollateral_withInsufficientFreeCollateral_shouldNotify #######'
+  );
+
+  // Mock out account free collateral fetching and calculation.
+  freeCollateral.getFreeCollateral = (accountId) => {
+    return {
+      debt: 100.42141,
+      collateral: 400.42141,
+      freeCollateral: 300.42141,
+    };
+  };
+
+  const notification = await freeCollateral.onBlocks({
+    subscription: {
+      'free-collateral': 500.42141,
+      address: '0x00000',
+    },
+  });
+  console.log('Notifications:\n', JSON.stringify(notification), '\n');
+
+  console.assert(
+    notification.notification ===
+      'Your account is low in free collateral and is at risk of getting liquidated. Free collateral: 300 USD | Collateral: 400 USD | Debt: 100 USD'
+  );
+}
+
 async function main() {
-  console.log("%%% test debt settlement %%%");
+  console.log('%%% test debt settlement %%%');
   await testDebtSettlement_withSettlableDebt_shouldBuildNotificationWithPositions();
   await testDebtSettlement_withSettlableDebt_shouldNotNotifyAgainForSamePositions();
   await testDebtSettlement_withNoSettlableDebt_shouldDoNothing();
+
+  console.log('%%% test free collateral %%%');
+  await testFreeCollateral_withFreeCollateralAboveThreshold_shouldNotNotify();
+  await testFreeCollateral_withFreeCollateralBelowThreshold_shouldNotify();
 }
 
 main();

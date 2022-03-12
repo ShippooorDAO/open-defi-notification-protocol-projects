@@ -9,8 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ethereum-multicall": "^2.9.0",
+    "@notional-finance/sdk-v2": "^0.4.15",
     "bignumber.js": "^9.0.1",
+    "ethereum-multicall": "^2.9.0",
     "node-fetch": "^2.6.5",
     "web3": "^1.5.2"
   }
